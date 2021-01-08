@@ -722,6 +722,8 @@ def main():
                     pre_model=pre_model, outfile_path=outfile_path, fieldnames=fieldnames, epoch=epoch, ema=True)
                 eval_metrics = ema_eval_metrics
 
+            print(model_ema)
+
             if lr_scheduler is not None:
                 # step LR for next epoch
                 lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])

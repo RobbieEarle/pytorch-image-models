@@ -26,7 +26,7 @@ class HigherOrderActivation(nn.Module):
 
     def init_shuffle_maps(self, num_channels):
         self.shuffle_maps = []
-        for i in range(self.p):
+        for i in range(1, self.p):
             self.shuffle_maps.append(torch.randperm(num_channels))
 
     def get_actfun_multiplier(self):
