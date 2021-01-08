@@ -723,6 +723,7 @@ def main():
                 eval_metrics = ema_eval_metrics
 
             print(model_ema)
+            print("234"+1243)
 
             if lr_scheduler is not None:
                 # step LR for next epoch
