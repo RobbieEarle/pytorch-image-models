@@ -24,6 +24,7 @@ SAVE_PATH=~/pytorch-image-models/outputs/nef_partial
 CHECK_PATH="/checkpoint/$USER/${SLURM_JOB_ID}"
 IMGNET_PATH=/scratch/ssd001/datasets/imagenet/
 
+mkdir -p "$SAVE_PATH"
 touch $CHECK_PATH
 
 # Debugging outputs
