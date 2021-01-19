@@ -438,6 +438,7 @@ def main():
         model_new_layers = list(model_new.children())
 
         print(model_layers[-2:])
+        print(model_layers[-1].detach().numpy().shape)
         print("234"+234)
 
         # if args.tl_layers == '8full_9full':
@@ -450,7 +451,7 @@ def main():
         # elif args.tl_layers == '9full':
         #     model1_layers = model_layers[:4]
         #     model2_layers = model_new_layers[4:]
-        # pre_model = torch.nn.Sequential(*model1_layers)
+        pre_model = torch.nn.Sequential(*model_layers[:-1])
         # model = torch.nn.Sequential(*model2_layers)
     else:
         pre_model = None
