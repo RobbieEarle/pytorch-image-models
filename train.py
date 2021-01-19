@@ -390,7 +390,7 @@ def main():
     if args.tl:
         model = create_model(
             args.model,
-            pretrained=args.pretrained,
+            pretrained=True,
             actfun='swish',
             num_classes=args.num_classes,
             drop_rate=args.drop,
@@ -403,13 +403,6 @@ def main():
             bn_eps=args.bn_eps,
             scriptable=args.torchscript,
             checkpoint_path=args.initial_checkpoint,
-            p=args.p,
-            k=args.k,
-            g=args.g,
-            tl_layers=args.tl_layers,
-            extra_channel_mult=args.extra_channel_mult,
-            weight_init_name=args.weight_init,
-            partial_ho_actfun=args.partial_ho_actfun
         )
         model_new = create_model(
             args.model,
@@ -436,18 +429,22 @@ def main():
         )
         model_layers = list(model.children())
         model_new_layers = list(model_new.children())
-        if args.tl_layers == '8full_9full':
-            intro_layers = model_layers[:3]
-            main_layers = list(model_layers[3])
-            model1_layers = intro_layers + main_layers[:-1]
-            main_layers_new = list(model_new_layers[3])
-            outro_layers = model_new_layers[4:]
-            model2_layers = main_layers_new[-1:] + outro_layers
-        elif args.tl_layers == '9full':
-            model1_layers = model_layers[:4]
-            model2_layers = model_new_layers[4:]
-        pre_model = torch.nn.Sequential(*model1_layers)
-        model = torch.nn.Sequential(*model2_layers)
+
+        print(model_layers)
+        print("234"+234)
+
+        # if args.tl_layers == '8full_9full':
+        #     intro_layers = model_layers[:3]
+        #     main_layers = list(model_layers[3])
+        #     model1_layers = intro_layers + main_layers[:-1]
+        #     main_layers_new = list(model_new_layers[3])
+        #     outro_layers = model_new_layers[4:]
+        #     model2_layers = main_layers_new[-1:] + outro_layers
+        # elif args.tl_layers == '9full':
+        #     model1_layers = model_layers[:4]
+        #     model2_layers = model_new_layers[4:]
+        # pre_model = torch.nn.Sequential(*model1_layers)
+        # model = torch.nn.Sequential(*model2_layers)
     else:
         pre_model = None
 
