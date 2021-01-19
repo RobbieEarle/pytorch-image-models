@@ -438,7 +438,7 @@ def main():
         model_new_layers = list(model_new.children())
 
         print(model_layers[-2:])
-        print(model_layers[-1].detach().numpy().shape)
+        print(model_layers[-1].named_parameters().detach().numpy().shape)
         print("234"+234)
 
         # if args.tl_layers == '8full_9full':
