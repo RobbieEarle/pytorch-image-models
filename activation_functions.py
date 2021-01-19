@@ -35,6 +35,11 @@ class HigherOrderActivation(nn.Module):
         else:
             return 1
 
+    def extra_repr(self):
+        return 'actufn={}, p={}, k={}, g={}'.format(
+            self.actfun, self.p, self.k, self.g,
+        )
+
 
 def permute(x, method, layer_type, k, offset, num_groups=2, shuffle_map=None):
     if method == "roll":
