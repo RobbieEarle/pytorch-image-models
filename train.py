@@ -38,6 +38,7 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy, JsdCro
 from timm.optim import create_optimizer
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
+import MLP
 
 try:
     from apex import amp
@@ -388,7 +389,7 @@ def main():
     )
 
     if args.tl:
-        model = create_model(
+        pre_model = create_model(
             args.model,
             pretrained=True,
             actfun='swish',
@@ -411,48 +412,18 @@ def main():
             weight_init_name=args.weight_init,
             partial_ho_actfun=args.partial_ho_actfun
         )
-        model_new = create_model(
-            args.model,
-            pretrained=False,
-            actfun=args.actfun,
-            num_classes=args.num_classes,
-            drop_rate=args.drop,
-            drop_connect_rate=args.drop_connect,  # DEPRECATED, use drop_path
-            drop_path_rate=args.drop_path,
-            drop_block_rate=args.drop_block,
-            global_pool=args.gp,
-            bn_tf=args.bn_tf,
-            bn_momentum=args.bn_momentum,
-            bn_eps=args.bn_eps,
-            scriptable=args.torchscript,
-            checkpoint_path=args.initial_checkpoint,
-            p=args.p,
-            k=args.k,
-            g=args.g,
-            tl_layers=args.tl_layers,
-            extra_channel_mult=args.extra_channel_mult,
-            weight_init_name=args.weight_init,
-            partial_ho_actfun=args.partial_ho_actfun
-        )
+        model = MLP.MLP(actfun=args.actfun,
+                        input_dim=1280,
+                        output_dim=10,
+                        k=args.k,
+                        p=args.p,
+                        g=args.g,
+                        num_params=400_000,
+                        permute_type='shuffle')
+        pre_model_layers = list(pre_model.children())
         model_layers = list(model.children())
-        model_new_layers = list(model_new.children())
 
-        print(model_layers[-2:])
-        print(model_layers[-1].named_parameters().detach().numpy().shape)
-        print("234"+234)
-
-        # if args.tl_layers == '8full_9full':
-        #     intro_layers = model_layers[:3]
-        #     main_layers = list(model_layers[3])
-        #     model1_layers = intro_layers + main_layers[:-1]
-        #     main_layers_new = list(model_new_layers[3])
-        #     outro_layers = model_new_layers[4:]
-        #     model2_layers = main_layers_new[-1:] + outro_layers
-        # elif args.tl_layers == '9full':
-        #     model1_layers = model_layers[:4]
-        #     model2_layers = model_new_layers[4:]
-        pre_model = torch.nn.Sequential(*model_layers[:-1])
-        # model = torch.nn.Sequential(*model2_layers)
+        pre_model = torch.nn.Sequential(*pre_model_layers[:-1])
     else:
         pre_model = None
 
