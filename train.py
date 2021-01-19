@@ -403,6 +403,13 @@ def main():
             bn_eps=args.bn_eps,
             scriptable=args.torchscript,
             checkpoint_path=args.initial_checkpoint,
+            p=args.p,
+            k=args.k,
+            g=args.g,
+            tl_layers=args.tl_layers,
+            extra_channel_mult=args.extra_channel_mult,
+            weight_init_name=args.weight_init,
+            partial_ho_actfun=args.partial_ho_actfun
         )
         model_new = create_model(
             args.model,
