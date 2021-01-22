@@ -421,8 +421,6 @@ def main():
                         num_params=400_000,
                         permute_type='shuffle')
         pre_model_layers = list(pre_model.children())
-        model_layers = list(model.children())
-
         pre_model = torch.nn.Sequential(*pre_model_layers[:-1])
     else:
         pre_model = None
@@ -469,7 +467,10 @@ def main():
         assert not args.sync_bn, 'Cannot use SyncBatchNorm with torchscripted model'
         model = torch.jit.script(model)
 
-    optimizer = create_optimizer(args, model)
+    if args.tl:
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5)
+    else:
+        optimizer = create_optimizer(args, model)
 
     # setup automatic mixed-precision (AMP) loss scaling and op casting
     amp_autocast = suppress  # do nothing
@@ -546,22 +547,6 @@ def main():
             model = NativeDDP(model, device_ids=[args.local_rank])  # can use device str in Torch >= 1.1
         # NOTE: EMA model does not need to be wrapped by DDP
 
-    # setup learning rate schedule and starting epoch
-    lr_scheduler, num_epochs = create_scheduler(args, optimizer)
-    start_epoch = 0
-    if args.start_epoch is not None:
-        # a specified start_epoch will always override the resume epoch
-        start_epoch = args.start_epoch
-    elif resume_epoch is not None:
-        start_epoch = resume_epoch
-    if lr_scheduler is not None and start_epoch > 0:
-        lr_scheduler.step(start_epoch)
-    if cp_loaded is not None:
-        lr_scheduler.load_state_dict(cp_loaded['scheduler'])
-
-    if args.local_rank == 0:
-        _logger.info('Scheduled epochs: {}'.format(num_epochs))
-
     # create the train and eval datasets
     train_dir = os.path.join(args.data, 'train')
     if not os.path.exists(train_dir):
@@ -576,6 +561,8 @@ def main():
             _logger.error('Validation folder does not exist at: {}'.format(eval_dir))
             exit(1)
     dataset_eval = Dataset(eval_dir)
+    print(dataset_eval)
+    print("2134"+1234)
 
     # setup mixup / cutmix
     collate_fn = None
@@ -592,56 +579,76 @@ def main():
         else:
             mixup_fn = Mixup(**mixup_args)
 
-    # wrap dataset in AugMix helper
-    if num_aug_splits > 1:
-        dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
+    if args.tl:
+        pass
+    else:
 
-    # create data loaders w/ augmentation pipeline
-    train_interpolation = args.train_interpolation
-    if args.no_aug or not train_interpolation:
-        train_interpolation = data_config['interpolation']
-    loader_train = create_loader(
-        dataset_train,
-        input_size=data_config['input_size'],
-        batch_size=args.batch_size,
-        is_training=True,
-        use_prefetcher=args.prefetcher,
-        no_aug=args.no_aug,
-        re_prob=args.reprob,
-        re_mode=args.remode,
-        re_count=args.recount,
-        re_split=args.resplit,
-        scale=args.scale,
-        ratio=args.ratio,
-        hflip=args.hflip,
-        vflip=args.vflip,
-        color_jitter=args.color_jitter,
-        auto_augment=args.aa,
-        num_aug_splits=num_aug_splits,
-        interpolation=train_interpolation,
-        mean=data_config['mean'],
-        std=data_config['std'],
-        num_workers=args.workers,
-        distributed=args.distributed,
-        collate_fn=collate_fn,
-        pin_memory=args.pin_mem,
-        use_multi_epochs_loader=args.use_multi_epochs_loader
-    )
+        # wrap dataset in AugMix helper
+        if num_aug_splits > 1:
+            dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
 
-    loader_eval = create_loader(
-        dataset_eval,
-        input_size=data_config['input_size'],
-        batch_size=args.validation_batch_size_multiplier * args.batch_size,
-        is_training=False,
-        use_prefetcher=args.prefetcher,
-        interpolation=data_config['interpolation'],
-        mean=data_config['mean'],
-        std=data_config['std'],
-        num_workers=args.workers,
-        distributed=args.distributed,
-        crop_pct=data_config['crop_pct'],
-        pin_memory=args.pin_mem,
-    )
+        # create data loaders w/ augmentation pipeline
+        train_interpolation = args.train_interpolation
+        if args.no_aug or not train_interpolation:
+            train_interpolation = data_config['interpolation']
+        loader_train = create_loader(
+            dataset_train,
+            input_size=data_config['input_size'],
+            batch_size=args.batch_size,
+            is_training=True,
+            use_prefetcher=args.prefetcher,
+            no_aug=args.no_aug,
+            re_prob=args.reprob,
+            re_mode=args.remode,
+            re_count=args.recount,
+            re_split=args.resplit,
+            scale=args.scale,
+            ratio=args.ratio,
+            hflip=args.hflip,
+            vflip=args.vflip,
+            color_jitter=args.color_jitter,
+            auto_augment=args.aa,
+            num_aug_splits=num_aug_splits,
+            interpolation=train_interpolation,
+            mean=data_config['mean'],
+            std=data_config['std'],
+            num_workers=args.workers,
+            distributed=args.distributed,
+            collate_fn=collate_fn,
+            pin_memory=args.pin_mem,
+            use_multi_epochs_loader=args.use_multi_epochs_loader
+        )
+
+        loader_eval = create_loader(
+            dataset_eval,
+            input_size=data_config['input_size'],
+            batch_size=args.validation_batch_size_multiplier * args.batch_size,
+            is_training=False,
+            use_prefetcher=args.prefetcher,
+            interpolation=data_config['interpolation'],
+            mean=data_config['mean'],
+            std=data_config['std'],
+            num_workers=args.workers,
+            distributed=args.distributed,
+            crop_pct=data_config['crop_pct'],
+            pin_memory=args.pin_mem,
+        )
+
+    # setup learning rate schedule and starting epoch
+    lr_scheduler, num_epochs = create_scheduler(args, optimizer)
+    start_epoch = 0
+    if args.start_epoch is not None:
+        # a specified start_epoch will always override the resume epoch
+        start_epoch = args.start_epoch
+    elif resume_epoch is not None:
+        start_epoch = resume_epoch
+    if lr_scheduler is not None and start_epoch > 0:
+        lr_scheduler.step(start_epoch)
+    if cp_loaded is not None:
+        lr_scheduler.load_state_dict(cp_loaded['scheduler'])
+
+    if args.local_rank == 0:
+        _logger.info('Scheduled epochs: {}'.format(num_epochs))
 
     # setup loss function
     if args.jsd:
@@ -677,7 +684,7 @@ def main():
         with open(os.path.join(output_dir, 'args.yaml'), 'w') as f:
             f.write(args_text)
 
-    fieldnames = ['seed', 'weight_init', 'actfun', 'epoch', 'lr', 'train_loss', 'eval_loss', 'eval_acc1', 'eval_acc5', 'ema']
+    fieldnames = ['seed', 'weight_init', 'actfun', 'epoch', 'max_lr', 'lr', 'train_loss', 'eval_loss', 'eval_acc1', 'eval_acc5', 'ema']
     filename = 'output'
     if args.actfun != 'swish':
         filename = '{}_'.format(args.actfun) + filename
@@ -749,6 +756,7 @@ def main():
                                      'weight_init': args.weight_init,
                                      'actfun': args.actfun,
                                      'epoch': epoch,
+                                     'max_lr': args.lr,
                                      'lr': train_metrics['lr'],
                                      'train_loss': train_metrics['loss'],
                                      'eval_loss': eval_metrics['loss'],
