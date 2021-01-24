@@ -415,7 +415,7 @@ def main():
         )
         model = MLP.MLP(actfun=args.actfun,
                         input_dim=1280,
-                        output_dim=10,
+                        output_dim=args.num_classes,
                         k=args.k,
                         p=args.p,
                         g=args.g,
