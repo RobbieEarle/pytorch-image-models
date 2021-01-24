@@ -602,6 +602,7 @@ def main():
         _logger.error('Training folder does not exist at: {}'.format(train_dir))
         exit(1)
     dataset_train = Dataset(train_dir)
+    print("------------------", len(dataset_train))
 
     eval_dir = os.path.join(args.data, 'val')
     if not os.path.isdir(eval_dir):
