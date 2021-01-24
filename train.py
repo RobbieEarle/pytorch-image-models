@@ -24,6 +24,7 @@ from contextlib import suppress
 from datetime import datetime
 import csv
 import os
+from shutil import copyfile
 import sys
 
 import torch
@@ -38,6 +39,7 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy, JsdCro
 from timm.optim import create_optimizer
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
+import MLP
 
 try:
     from apex import amp
@@ -387,9 +389,9 @@ def main():
     )
 
     if args.tl:
-        model = create_model(
+        pre_model = create_model(
             args.model,
-            pretrained=args.pretrained,
+            pretrained=True,
             actfun='swish',
             num_classes=args.num_classes,
             drop_rate=args.drop,
@@ -409,42 +411,16 @@ def main():
             weight_init_name=args.weight_init,
             partial_ho_actfun=args.partial_ho_actfun
         )
-        model_new = create_model(
-            args.model,
-            pretrained=False,
-            actfun=args.actfun,
-            num_classes=args.num_classes,
-            drop_rate=args.drop,
-            drop_connect_rate=args.drop_connect,  # DEPRECATED, use drop_path
-            drop_path_rate=args.drop_path,
-            drop_block_rate=args.drop_block,
-            global_pool=args.gp,
-            bn_tf=args.bn_tf,
-            bn_momentum=args.bn_momentum,
-            bn_eps=args.bn_eps,
-            scriptable=args.torchscript,
-            checkpoint_path=args.initial_checkpoint,
-            p=args.p,
-            k=args.k,
-            g=args.g,
-            extra_channel_mult=args.extra_channel_mult,
-            weight_init_name=args.weight_init,
-            partial_ho_actfun=args.partial_ho_actfun
-        )
-        model_layers = list(model.children())
-        model_new_layers = list(model_new.children())
-        if args.tl_layers == '8full_9full':
-            intro_layers = model_layers[:3]
-            main_layers = list(model_layers[3])
-            model1_layers = intro_layers + main_layers[:-1]
-            main_layers_new = list(model_new_layers[3])
-            outro_layers = model_new_layers[4:]
-            model2_layers = main_layers_new[-1:] + outro_layers
-        elif args.tl_layers == '9full':
-            model1_layers = model_layers[:4]
-            model2_layers = model_new_layers[4:]
-        pre_model = torch.nn.Sequential(*model1_layers)
-        model = torch.nn.Sequential(*model2_layers)
+        model = MLP.MLP(actfun=args.actfun,
+                        input_dim=1280,
+                        output_dim=args.num_classes,
+                        k=args.k,
+                        p=args.p,
+                        g=args.g,
+                        num_params=400_000,
+                        permute_type='shuffle')
+        pre_model_layers = list(pre_model.children())
+        pre_model = torch.nn.Sequential(*pre_model_layers[:-1])
     else:
         pre_model = None
 
@@ -490,7 +466,10 @@ def main():
         assert not args.sync_bn, 'Cannot use SyncBatchNorm with torchscripted model'
         model = torch.jit.script(model)
 
-    optimizer = create_optimizer(args, model)
+    if args.tl:
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5)
+    else:
+        optimizer = create_optimizer(args, model)
 
     # setup automatic mixed-precision (AMP) loss scaling and op casting
     amp_autocast = suppress  # do nothing
@@ -570,21 +549,63 @@ def main():
             model = NativeDDP(model, device_ids=[args.local_rank])  # can use device str in Torch >= 1.1
         # NOTE: EMA model does not need to be wrapped by DDP
 
-    # setup learning rate schedule and starting epoch
-    lr_scheduler, num_epochs = create_scheduler(args, optimizer)
-    start_epoch = 0
-    if args.start_epoch is not None:
-        # a specified start_epoch will always override the resume epoch
-        start_epoch = args.start_epoch
-    elif resume_epoch is not None:
-        start_epoch = resume_epoch
-    if lr_scheduler is not None and start_epoch > 0:
-        lr_scheduler.step(start_epoch)
-    if cp_loaded is not None:
-        lr_scheduler.load_state_dict(cp_loaded['scheduler'])
+    # setup mixup / cutmix
+    collate_fn = None
+    mixup_fn = None
+    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
+    if mixup_active:
+        mixup_args = dict(
+            mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
+            prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
+            label_smoothing=args.smoothing, num_classes=args.num_classes)
+        if args.prefetcher:
+            assert not num_aug_splits  # collate conflict (need to support deinterleaving in collate mixup)
+            collate_fn = FastCollateMixup(**mixup_args)
+        else:
+            mixup_fn = Mixup(**mixup_args)
 
-    if args.local_rank == 0:
-        _logger.info('Scheduled epochs: {}'.format(num_epochs))
+    if args.tl:
+        if args.data == 'caltech101' and not os.path.exists('caltech101'):
+            dir_root = r'101_ObjectCategories'
+            dir_new = r'caltech101'
+            dir_new_train = os.path.join(dir_new, 'train')
+            dir_new_val = os.path.join(dir_new, 'val')
+            dir_new_test = os.path.join(dir_new, 'test')
+            if not os.path.exists(dir_new):
+                os.mkdir(dir_new)
+                os.mkdir(dir_new_train)
+                os.mkdir(dir_new_val)
+                os.mkdir(dir_new_test)
+
+            for dir2 in os.listdir(dir_root):
+                if dir2 != 'BACKGROUND_Google':
+                    curr_path = os.path.join(dir_root, dir2)
+                    new_path_train = os.path.join(dir_new_train, dir2)
+                    new_path_val = os.path.join(dir_new_val, dir2)
+                    new_path_test = os.path.join(dir_new_test, dir2)
+                    if not os.path.exists(new_path_train):
+                        os.mkdir(new_path_train)
+                    if not os.path.exists(new_path_val):
+                        os.mkdir(new_path_val)
+                    if not os.path.exists(new_path_test):
+                        os.mkdir(new_path_test)
+
+                    train_upper = int(0.8 * len(os.listdir(curr_path)))
+                    val_upper = int(0.9 * len(os.listdir(curr_path)))
+                    curr_files_all = os.listdir(curr_path)
+                    curr_files_train = curr_files_all[:train_upper]
+                    curr_files_val = curr_files_all[train_upper:val_upper]
+                    curr_files_test = curr_files_all[val_upper:]
+
+                    for file in curr_files_train:
+                        copyfile(os.path.join(curr_path, file),
+                                 os.path.join(new_path_train, file))
+                    for file in curr_files_val:
+                        copyfile(os.path.join(curr_path, file),
+                                 os.path.join(new_path_val, file))
+                    for file in curr_files_test:
+                        copyfile(os.path.join(curr_path, file),
+                                 os.path.join(new_path_test, file))
 
     # create the train and eval datasets
     train_dir = os.path.join(args.data, 'train')
@@ -600,21 +621,6 @@ def main():
             _logger.error('Validation folder does not exist at: {}'.format(eval_dir))
             exit(1)
     dataset_eval = Dataset(eval_dir)
-
-    # setup mixup / cutmix
-    collate_fn = None
-    mixup_fn = None
-    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
-    if mixup_active:
-        mixup_args = dict(
-            mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
-            prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
-            label_smoothing=args.smoothing, num_classes=args.num_classes)
-        if args.prefetcher:
-            assert not num_aug_splits  # collate conflict (need to support deinterleaving in collate mixup)
-            collate_fn = FastCollateMixup(**mixup_args)
-        else:
-            mixup_fn = Mixup(**mixup_args)
 
     # wrap dataset in AugMix helper
     if num_aug_splits > 1:
@@ -667,6 +673,22 @@ def main():
         pin_memory=args.pin_mem,
     )
 
+    # setup learning rate schedule and starting epoch
+    lr_scheduler, num_epochs = create_scheduler(args, optimizer, dataset_train)
+    start_epoch = 0
+    if args.start_epoch is not None:
+        # a specified start_epoch will always override the resume epoch
+        start_epoch = args.start_epoch
+    elif resume_epoch is not None:
+        start_epoch = resume_epoch
+    if lr_scheduler is not None and start_epoch > 0:
+        lr_scheduler.step(start_epoch)
+    if cp_loaded is not None:
+        lr_scheduler.load_state_dict(cp_loaded['scheduler'])
+
+    if args.local_rank == 0:
+        _logger.info('Scheduled epochs: {}'.format(num_epochs))
+
     # setup loss function
     if args.jsd:
         assert num_aug_splits > 1  # JSD only valid with aug splits set
@@ -701,7 +723,7 @@ def main():
         with open(os.path.join(output_dir, 'args.yaml'), 'w') as f:
             f.write(args_text)
 
-    fieldnames = ['seed', 'weight_init', 'actfun', 'epoch', 'lr', 'train_loss', 'eval_loss', 'eval_acc1', 'eval_acc5', 'ema']
+    fieldnames = ['seed', 'weight_init', 'actfun', 'epoch', 'max_lr', 'lr', 'train_loss', 'eval_loss', 'eval_acc1', 'eval_acc5', 'ema']
     filename = 'output'
     if args.actfun != 'swish':
         filename = '{}_'.format(args.actfun) + filename
@@ -773,6 +795,7 @@ def main():
                                      'weight_init': args.weight_init,
                                      'actfun': args.actfun,
                                      'epoch': epoch,
+                                     'max_lr': args.lr,
                                      'lr': train_metrics['lr'],
                                      'train_loss': train_metrics['loss'],
                                      'eval_loss': eval_metrics['loss'],
@@ -781,7 +804,7 @@ def main():
                                      'ema': True
                                      })
 
-            if lr_scheduler is not None:
+            if lr_scheduler is not None and args.sched != 'onecycle':
                 # step LR for next epoch
                 lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
@@ -896,7 +919,9 @@ def train_epoch(
                 last_batch or (batch_idx + 1) % args.recovery_interval == 0):
             saver.save_recovery(epoch, batch_idx=batch_idx)
 
-        if lr_scheduler is not None:
+        if args.sched == 'onecycle':
+            lr_scheduler.step()
+        elif lr_scheduler is not None:
             lr_scheduler.step_update(num_updates=num_updates, metric=losses_m.avg)
 
         end = time.time()

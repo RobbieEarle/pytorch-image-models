@@ -5,9 +5,11 @@ from .cosine_lr import CosineLRScheduler
 from .tanh_lr import TanhLRScheduler
 from .step_lr import StepLRScheduler
 from .plateau_lr import PlateauLRScheduler
+from torch.optim.lr_scheduler import OneCycleLR
+import math
 
 
-def create_scheduler(args, optimizer):
+def create_scheduler(args, optimizer, dataset_train):
     num_epochs = args.epochs
 
     if getattr(args, 'lr_noise', None) is not None:
@@ -22,6 +24,15 @@ def create_scheduler(args, optimizer):
         noise_range = None
 
     lr_scheduler = None
+
+    if args.sched == 'onecycle':
+        lr_scheduler = OneCycleLR(optimizer,
+                                  max_lr=args.lr,
+                                  epochs=num_epochs,
+                                  steps_per_epoch=int(math.floor(len(dataset_train) / args.batch_size)),
+                                  cycle_momentum=False
+                                  )
+
     if args.sched == 'cosine':
         lr_scheduler = CosineLRScheduler(
             optimizer,
