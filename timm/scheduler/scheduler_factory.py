@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import OneCycleLR
 import math
 
 
-def create_scheduler(args, optimizer):
+def create_scheduler(args, optimizer, dataset_train):
     num_epochs = args.epochs
 
     if getattr(args, 'lr_noise', None) is not None:
@@ -29,7 +29,7 @@ def create_scheduler(args, optimizer):
         lr_scheduler = OneCycleLR(optimizer,
                                   max_lr=args.lr,
                                   epochs=num_epochs,
-                                  steps_per_epoch=int(math.floor(sample_size / args.batch_size)),
+                                  steps_per_epoch=int(math.floor(len(dataset_train) / args.batch_size)),
                                   cycle_momentum=False
                                   )
 

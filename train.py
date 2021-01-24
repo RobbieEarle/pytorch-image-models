@@ -602,7 +602,6 @@ def main():
         _logger.error('Training folder does not exist at: {}'.format(train_dir))
         exit(1)
     dataset_train = Dataset(train_dir)
-    print("------------------", len(dataset_train))
 
     eval_dir = os.path.join(args.data, 'val')
     if not os.path.isdir(eval_dir):
@@ -664,7 +663,7 @@ def main():
     )
 
     # setup learning rate schedule and starting epoch
-    lr_scheduler, num_epochs = create_scheduler(args, optimizer)
+    lr_scheduler, num_epochs = create_scheduler(args, optimizer, dataset_train)
     start_epoch = 0
     if args.start_epoch is not None:
         # a specified start_epoch will always override the resume epoch
