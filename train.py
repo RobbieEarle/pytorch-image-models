@@ -24,6 +24,7 @@ from contextlib import suppress
 from datetime import datetime
 import csv
 import os
+from shutil import copyfile
 import sys
 
 import torch
@@ -547,23 +548,6 @@ def main():
             model = NativeDDP(model, device_ids=[args.local_rank])  # can use device str in Torch >= 1.1
         # NOTE: EMA model does not need to be wrapped by DDP
 
-    # create the train and eval datasets
-    train_dir = os.path.join(args.data, 'train')
-    if not os.path.exists(train_dir):
-        _logger.error('Training folder does not exist at: {}'.format(train_dir))
-        exit(1)
-    dataset_train = Dataset(train_dir)
-
-    eval_dir = os.path.join(args.data, 'val')
-    if not os.path.isdir(eval_dir):
-        eval_dir = os.path.join(args.data, 'validation')
-        if not os.path.isdir(eval_dir):
-            _logger.error('Validation folder does not exist at: {}'.format(eval_dir))
-            exit(1)
-    dataset_eval = Dataset(eval_dir)
-    print(dataset_eval)
-    print("2134"+1234)
-
     # setup mixup / cutmix
     collate_fn = None
     mixup_fn = None
@@ -580,59 +564,103 @@ def main():
             mixup_fn = Mixup(**mixup_args)
 
     if args.tl:
-        pass
-    else:
+        if args.data == 'caltech101' and not os.path.exists('caltech101'):
+            dir_root = r'101_ObjectCategories'
+            dir_new = r'caltech101'
+            dir_new_train = os.path.join(dir_new, 'train')
+            dir_new_val = os.path.join(dir_new, 'val')
+            if not os.path.exists(dir_new):
+                os.mkdir(dir_new)
+                os.mkdir(dir_new_train)
+                os.mkdir(dir_new_val)
 
-        # wrap dataset in AugMix helper
-        if num_aug_splits > 1:
-            dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
+            for dir2 in os.listdir(dir_root):
+                if dir2 != 'BACKGROUND_Google':
+                    curr_path = os.path.join(dir_root, dir2)
+                    new_path_train = os.path.join(dir_new_train, dir2)
+                    new_path_val = os.path.join(dir_new_val, dir2)
+                    if not os.path.exists(new_path_train):
+                        os.mkdir(new_path_train)
+                    if not os.path.exists(new_path_val):
+                        os.mkdir(new_path_val)
 
-        # create data loaders w/ augmentation pipeline
-        train_interpolation = args.train_interpolation
-        if args.no_aug or not train_interpolation:
-            train_interpolation = data_config['interpolation']
-        loader_train = create_loader(
-            dataset_train,
-            input_size=data_config['input_size'],
-            batch_size=args.batch_size,
-            is_training=True,
-            use_prefetcher=args.prefetcher,
-            no_aug=args.no_aug,
-            re_prob=args.reprob,
-            re_mode=args.remode,
-            re_count=args.recount,
-            re_split=args.resplit,
-            scale=args.scale,
-            ratio=args.ratio,
-            hflip=args.hflip,
-            vflip=args.vflip,
-            color_jitter=args.color_jitter,
-            auto_augment=args.aa,
-            num_aug_splits=num_aug_splits,
-            interpolation=train_interpolation,
-            mean=data_config['mean'],
-            std=data_config['std'],
-            num_workers=args.workers,
-            distributed=args.distributed,
-            collate_fn=collate_fn,
-            pin_memory=args.pin_mem,
-            use_multi_epochs_loader=args.use_multi_epochs_loader
-        )
+                    split = int(0.75 * len(os.listdir(curr_path)))
+                    curr_files_all = os.listdir(curr_path)
+                    curr_files_train = curr_files_all[:split]
+                    curr_files_val = curr_files_all[split:]
 
-        loader_eval = create_loader(
-            dataset_eval,
-            input_size=data_config['input_size'],
-            batch_size=args.validation_batch_size_multiplier * args.batch_size,
-            is_training=False,
-            use_prefetcher=args.prefetcher,
-            interpolation=data_config['interpolation'],
-            mean=data_config['mean'],
-            std=data_config['std'],
-            num_workers=args.workers,
-            distributed=args.distributed,
-            crop_pct=data_config['crop_pct'],
-            pin_memory=args.pin_mem,
-        )
+                    for file in curr_files_train:
+                        copyfile(os.path.join(curr_path, file),
+                                 os.path.join(new_path_train, file))
+                    for file in curr_files_val:
+                        copyfile(os.path.join(curr_path, file),
+                                 os.path.join(new_path_val, file))
+
+    # create the train and eval datasets
+    train_dir = os.path.join(args.data, 'train')
+    if not os.path.exists(train_dir):
+        _logger.error('Training folder does not exist at: {}'.format(train_dir))
+        exit(1)
+    dataset_train = Dataset(train_dir)
+
+    eval_dir = os.path.join(args.data, 'val')
+    if not os.path.isdir(eval_dir):
+        eval_dir = os.path.join(args.data, 'validation')
+        if not os.path.isdir(eval_dir):
+            _logger.error('Validation folder does not exist at: {}'.format(eval_dir))
+            exit(1)
+    dataset_eval = Dataset(eval_dir)
+
+    # wrap dataset in AugMix helper
+    if num_aug_splits > 1:
+        dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
+
+    # create data loaders w/ augmentation pipeline
+    train_interpolation = args.train_interpolation
+    if args.no_aug or not train_interpolation:
+        train_interpolation = data_config['interpolation']
+    loader_train = create_loader(
+        dataset_train,
+        input_size=data_config['input_size'],
+        batch_size=args.batch_size,
+        is_training=True,
+        use_prefetcher=args.prefetcher,
+        no_aug=args.no_aug,
+        re_prob=args.reprob,
+        re_mode=args.remode,
+        re_count=args.recount,
+        re_split=args.resplit,
+        scale=args.scale,
+        ratio=args.ratio,
+        hflip=args.hflip,
+        vflip=args.vflip,
+        color_jitter=args.color_jitter,
+        auto_augment=args.aa,
+        num_aug_splits=num_aug_splits,
+        interpolation=train_interpolation,
+        mean=data_config['mean'],
+        std=data_config['std'],
+        num_workers=args.workers,
+        distributed=args.distributed,
+        collate_fn=collate_fn,
+        pin_memory=args.pin_mem,
+        use_multi_epochs_loader=args.use_multi_epochs_loader
+    )
+
+    loader_eval = create_loader(
+        dataset_eval,
+        input_size=data_config['input_size'],
+        batch_size=args.validation_batch_size_multiplier * args.batch_size,
+        is_training=False,
+        use_prefetcher=args.prefetcher,
+        interpolation=data_config['interpolation'],
+        mean=data_config['mean'],
+        std=data_config['std'],
+        num_workers=args.workers,
+        distributed=args.distributed,
+        crop_pct=data_config['crop_pct'],
+        pin_memory=args.pin_mem,
+    )
 
     # setup learning rate schedule and starting epoch
     lr_scheduler, num_epochs = create_scheduler(args, optimizer)
