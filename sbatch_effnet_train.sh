@@ -46,5 +46,5 @@ echo "SEED=$SEED"
 ~/utilities/log_gpu_cpu_stats 2000 0.5 -n -1 "${SAVE_PATH}/${SLURM_ARRAY_TASK_ID}_${SLURM_NODEID}_${SLURM_ARRAY_JOB_ID}_compute_usage.log"&
 export LOGGER_PID="$!"
 
-!./distributed_train.sh 4 caltech101 --model efficientnet_b0 -b 20 --actfun $ACTFUN --output $SAVE_PATH --check-path $CHECK_PATH --seed $SEED --sched onecycle --epochs 100 --weight-init orthogonal --tl --lr $LR --num-classes 101 --control-amp amp
+!./distributed_train.sh 4 caltech101 --model efficientnet_b0 -b 20 --actfun $ACTFUN --output $SAVE_PATH --check-path $CHECK_PATH --seed $SEED --sched onecycle --epochs 450 --weight-init orthogonal --tl --lr $LR --num-classes 101 --control-amp amp
 kill $LOGGER_PID
