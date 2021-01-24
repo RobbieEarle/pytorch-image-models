@@ -222,7 +222,7 @@ class EfficientNetBuilder:
     def __init__(self, channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  output_stride=32, pad_type='', act_layer=None, se_kwargs=None,
                  norm_layer=nn.BatchNorm2d, norm_kwargs=None, drop_path_rate=0., feature_location='',
-                 verbose=False, actfun='swish', p=1, k=2, g=1, tl_layers=None, partial_ho_actfun='',
+                 verbose=False, actfun='swish', p=1, k=2, g=1, partial_ho_actfun='',
                  act_layer2=None):
         self.channel_multiplier = channel_multiplier
         self.channel_divisor = channel_divisor
@@ -240,7 +240,6 @@ class EfficientNetBuilder:
         self.p = p
         self.k = k
         self.g = g
-        self.tl_layers = tl_layers
         if feature_location == 'depthwise':
             # old 'depthwise' mode renamed 'expansion' to match TF impl, old expansion mode didn't make sense
             _logger.warning("feature_location=='depthwise' is deprecated, using 'expansion'")

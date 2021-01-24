@@ -383,7 +383,6 @@ def main():
         p=args.p,
         k=args.k,
         g=args.g,
-        tl_layers=args.tl_layers,
         extra_channel_mult=args.extra_channel_mult,
         weight_init_name=args.weight_init,
         partial_ho_actfun=args.partial_ho_actfun
@@ -408,7 +407,6 @@ def main():
             p=args.p,
             k=args.k,
             g=args.g,
-            tl_layers=args.tl_layers,
             extra_channel_mult=args.extra_channel_mult,
             weight_init_name=args.weight_init,
             partial_ho_actfun=args.partial_ho_actfun
@@ -489,6 +487,9 @@ def main():
     else:
         if args.local_rank == 0:
             _logger.info('AMP not enabled. Training in float32.')
+
+    if args.local_rank == 0:
+        _logger.info('\n--------------------\nModel:\n' + repr(model) + '--------------------')
 
     # optionally resume from a checkpoint
     resume_epoch = None

@@ -333,7 +333,7 @@ class EfficientNet(nn.Module):
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  output_stride=32, pad_type='', fix_stem=False, act_layer=nn.ReLU, act_layer2=None, drop_rate=0.,
                  drop_path_rate=0., se_kwargs=None, norm_layer=nn.BatchNorm2d, norm_kwargs=None, global_pool='avg',
-                 actfun='swish', p=1, k=2, g=1, tl_layers=None, extra_channel_mult=1, weight_init_name=None,
+                 actfun='swish', p=1, k=2, g=1, extra_channel_mult=1, weight_init_name=None,
                  partial_ho_actfun=''):
         super(EfficientNet, self).__init__()
         norm_kwargs = norm_kwargs or {}
@@ -360,7 +360,7 @@ class EfficientNet(nn.Module):
         # Middle stages (IR/ER/DS Blocks)
         builder = EfficientNetBuilder(
             channel_multiplier, channel_divisor, channel_min, output_stride, pad_type, act_layer, se_kwargs,
-            norm_layer, norm_kwargs, drop_path_rate, actfun=actfun, p=p, k=k, g=g, tl_layers=tl_layers,
+            norm_layer, norm_kwargs, drop_path_rate, actfun=actfun, p=p, k=k, g=g,
             partial_ho_actfun=partial_ho_actfun, act_layer2=act_layer2, verbose=_DEBUG)
         self.blocks = nn.Sequential(*builder(activations, block_args))
         self.feature_info = builder.features
