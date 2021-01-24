@@ -793,7 +793,9 @@ def main():
                                      'ema': True
                                      })
 
-            if lr_scheduler is not None:
+            if args.sched == 'onecycle':
+                lr_scheduler.step()
+            elif lr_scheduler is not None:
                 # step LR for next epoch
                 lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
@@ -908,9 +910,7 @@ def train_epoch(
                 last_batch or (batch_idx + 1) % args.recovery_interval == 0):
             saver.save_recovery(epoch, batch_idx=batch_idx)
 
-        if args.sched == 'onecycle':
-            lr_scheduler.step()
-        elif lr_scheduler is not None:
+        if lr_scheduler is not None and args.sched != 'onecycle':
             lr_scheduler.step_update(num_updates=num_updates, metric=losses_m.avg)
 
         end = time.time()
