@@ -741,8 +741,13 @@ def main():
                     amp_loss = loss_scaler.state_dict()
                 elif use_amp == 'apex':
                     amp_loss = amp.state_dict()
+                if model_ema is not None:
+                    ema_save = model_ema.state_dict()
+                else:
+                    ema_save = None
+
                 torch.save({'model': model_raw.state_dict(),
-                            'model_ema': model_ema.state_dict(),
+                            'model_ema': ema_save,
                             'optimizer': optimizer.state_dict(),
                             'scheduler': lr_scheduler.state_dict(),
                             'epoch': epoch,
