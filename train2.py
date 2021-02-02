@@ -588,6 +588,8 @@ def main():
             optimizer.zero_grad()
             if args.mix_pre:
                 with torch.cuda.amp.autocast():
+                    with torch.no_grad():
+                        x = pre_model(x)
                     output = model(x)
                     train_loss = criterion(output, targetx)
                 total_train_loss += train_loss
@@ -596,6 +598,8 @@ def main():
                 scaler.step(optimizer)
                 scaler.update()
             elif args.mix_pre_apex:
+                with torch.no_grad():
+                    x = pre_model(x)
                 output = model(x)
                 train_loss = criterion(output, targetx)
                 total_train_loss += train_loss
@@ -604,6 +608,8 @@ def main():
                     scaled_loss.backward()
                 optimizer.step()
             else:
+                with torch.no_grad():
+                    x = pre_model(x)
                 output = model(x)
                 train_loss = criterion(output, targetx)
                 total_train_loss += train_loss
