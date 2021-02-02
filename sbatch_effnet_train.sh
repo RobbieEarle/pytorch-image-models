@@ -3,7 +3,7 @@
 #SBATCH --exclude=gpu102
 #SBATCH --exclude=gpu115
 #SBATCH --gres=gpu:1                        # request GPU(s)
-#SBATCH --qos=normal
+#SBATCH --qos=high
 #SBATCH -c 32                                # number of CPU cores
 #SBATCH --mem=128G                           # memory per node
 #SBATCH --time=500:00:00                     # max walltime, hh:mm:ss
