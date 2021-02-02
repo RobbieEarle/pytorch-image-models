@@ -515,7 +515,7 @@ def main():
     # ================================================================================= Save file / checkpoints
     fieldnames = [
         'dataset', 'seed', 'epoch', 'time', 'actfun', 'model', 'batch_size', 'alpha_primes', 'alphas',
-        'num_params', 'var_nparams', 'var_nsamples', 'k', 'p', 'g', 'perm_method', 'gen_gap',
+        'num_params', 'k', 'p', 'g', 'perm_method', 'gen_gap',
         'epoch_train_loss', 'epoch_train_acc', 'epoch_aug_train_loss', 'epoch_aug_train_acc',
         'epoch_val_loss', 'epoch_val_acc', 'curr_lr', 'found_lr', 'epochs'
     ]
@@ -696,7 +696,7 @@ def main():
         # Outputting data to CSV at end of epoch
         with open(outfile_path, mode='a') as out_file:
             writer = csv.DictWriter(out_file, fieldnames=fieldnames, lineterminator='\n')
-            writer.writerow({'dataset': args.dataset,
+            writer.writerow({'dataset': args.data,
                              'seed': args.seed,
                              'epoch': epoch,
                              'time': (time.time() - start_time),
@@ -706,8 +706,6 @@ def main():
                              'alpha_primes': alpha_primes,
                              'alphas': alphas,
                              'num_params': util.get_model_params(model),
-                             'var_nparams': args.var_n_params,
-                             'var_nsamples': args.var_n_samples,
                              'k': args.k,
                              'p': args.p,
                              'g': args.g,
