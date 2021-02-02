@@ -572,7 +572,7 @@ def main():
                         'perm_method': 'shuffle'
                         }, checkpoint_path)
 
-        util.seed_all((args.seed * args.num_epochs) + epoch)
+        util.seed_all((args.seed * args.epochs) + epoch)
         start_time = time.time()
         if args.control_amp == 'native':
             args.mix_pre = True
