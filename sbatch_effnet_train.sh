@@ -8,8 +8,8 @@
 #SBATCH --mem=128G                           # memory per node
 #SBATCH --time=500:00:00                     # max walltime, hh:mm:ss
 #SBATCH --array=42%1                    # array value
-#SBATCH --output=logs_new/tl_caltech101_1/%a-%N-%j    # %N for node name, %j for jobID
-#SBATCH --job-name=tl_caltech101_1
+#SBATCH --output=logs_new/test_tl/%a-%N-%j    # %N for node name, %j for jobID
+#SBATCH --job-name=test_tl
 
 source ~/.bashrc
 source activate ~/venvs/efficientnet_train
@@ -18,7 +18,7 @@ ACTFUN="$1"
 LR="$2"
 SEED="$SLURM_ARRAY_TASK_ID"
 
-SAVE_PATH=~/pytorch-image-models/outputs/tl_caltech101_1
+SAVE_PATH=~/pytorch-image-models/outputs/test_tl
 CHECK_PATH="/checkpoint/$USER/${SLURM_JOB_ID}"
 IMGNET_PATH=/scratch/ssd001/datasets/imagenet/
 
