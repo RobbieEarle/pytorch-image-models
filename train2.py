@@ -616,8 +616,7 @@ def main():
                 n += 1
                 train_loss.backward()
                 optimizer.step()
-            if args.optim == 'onecycle' or args.optim == 'onecycle_sgd':
-                scheduler.step()
+            scheduler.step()
             _, prediction = torch.max(output.data, 1)
             num_correct += torch.sum(prediction == targetx.data)
             num_total += len(prediction)
@@ -658,11 +657,6 @@ def main():
                         epoch_aug_train_loss, epoch_val_loss, (time.time() - start_time)),
             flush=True
         )
-
-        if args.hp_idx is None:
-            hp_idx = -1
-        else:
-            hp_idx = args.hp_idx
 
         epoch_train_loss = 0
         epoch_train_acc = 0
