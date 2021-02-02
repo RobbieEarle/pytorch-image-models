@@ -73,8 +73,8 @@ parser.add_argument('-c', '--config', default='', type=str, metavar='FILE',
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
 # Dataset / Model parameters
-parser.add_argument('data', metavar='DIR',
-                    help='path to dataset')
+parser.add_argument('--data', default='caltech101', type=str, metavar='MODEL',
+                    help='Dataset to use')
 parser.add_argument('--model', default='resnet101', type=str, metavar='MODEL',
                     help='Name of model to train (default: "countception"')
 parser.add_argument('--pretrained', action='store_true', default=False,
