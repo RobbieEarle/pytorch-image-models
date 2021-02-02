@@ -370,49 +370,48 @@ def main():
 
     # ================================================================================= Loading dataset
     util.seed_all(args.seed)
-    if args.tl:
-        if args.data == 'caltech101' and not os.path.exists('caltech101'):
-            dir_root = r'101_ObjectCategories'
-            dir_new = r'caltech101'
-            dir_new_train = os.path.join(dir_new, 'train')
-            dir_new_val = os.path.join(dir_new, 'val')
-            dir_new_test = os.path.join(dir_new, 'test')
-            if not os.path.exists(dir_new):
-                os.mkdir(dir_new)
-                os.mkdir(dir_new_train)
-                os.mkdir(dir_new_val)
-                os.mkdir(dir_new_test)
+    if args.data == 'caltech101' and not os.path.exists('caltech101'):
+        dir_root = r'101_ObjectCategories'
+        dir_new = r'caltech101'
+        dir_new_train = os.path.join(dir_new, 'train')
+        dir_new_val = os.path.join(dir_new, 'val')
+        dir_new_test = os.path.join(dir_new, 'test')
+        if not os.path.exists(dir_new):
+            os.mkdir(dir_new)
+            os.mkdir(dir_new_train)
+            os.mkdir(dir_new_val)
+            os.mkdir(dir_new_test)
 
-            for dir2 in os.listdir(dir_root):
-                if dir2 != 'BACKGROUND_Google':
-                    curr_path = os.path.join(dir_root, dir2)
-                    new_path_train = os.path.join(dir_new_train, dir2)
-                    new_path_val = os.path.join(dir_new_val, dir2)
-                    new_path_test = os.path.join(dir_new_test, dir2)
-                    if not os.path.exists(new_path_train):
-                        os.mkdir(new_path_train)
-                    if not os.path.exists(new_path_val):
-                        os.mkdir(new_path_val)
-                    if not os.path.exists(new_path_test):
-                        os.mkdir(new_path_test)
+        for dir2 in os.listdir(dir_root):
+            if dir2 != 'BACKGROUND_Google':
+                curr_path = os.path.join(dir_root, dir2)
+                new_path_train = os.path.join(dir_new_train, dir2)
+                new_path_val = os.path.join(dir_new_val, dir2)
+                new_path_test = os.path.join(dir_new_test, dir2)
+                if not os.path.exists(new_path_train):
+                    os.mkdir(new_path_train)
+                if not os.path.exists(new_path_val):
+                    os.mkdir(new_path_val)
+                if not os.path.exists(new_path_test):
+                    os.mkdir(new_path_test)
 
-                    train_upper = int(0.8 * len(os.listdir(curr_path)))
-                    val_upper = int(0.9 * len(os.listdir(curr_path)))
-                    curr_files_all = os.listdir(curr_path)
-                    curr_files_train = curr_files_all[:train_upper]
-                    curr_files_val = curr_files_all[train_upper:val_upper]
-                    curr_files_test = curr_files_all[val_upper:]
+                train_upper = int(0.8 * len(os.listdir(curr_path)))
+                val_upper = int(0.9 * len(os.listdir(curr_path)))
+                curr_files_all = os.listdir(curr_path)
+                curr_files_train = curr_files_all[:train_upper]
+                curr_files_val = curr_files_all[train_upper:val_upper]
+                curr_files_test = curr_files_all[val_upper:]
 
-                    for file in curr_files_train:
-                        copyfile(os.path.join(curr_path, file),
-                                 os.path.join(new_path_train, file))
-                    for file in curr_files_val:
-                        copyfile(os.path.join(curr_path, file),
-                                 os.path.join(new_path_val, file))
-                    for file in curr_files_test:
-                        copyfile(os.path.join(curr_path, file),
-                                 os.path.join(new_path_test, file))
-        time.sleep(5)
+                for file in curr_files_train:
+                    copyfile(os.path.join(curr_path, file),
+                             os.path.join(new_path_train, file))
+                for file in curr_files_val:
+                    copyfile(os.path.join(curr_path, file),
+                             os.path.join(new_path_val, file))
+                for file in curr_files_test:
+                    copyfile(os.path.join(curr_path, file),
+                             os.path.join(new_path_test, file))
+    time.sleep(5)
 
     # create the train and eval datasets
     train_dir = os.path.join(args.data, 'train')
