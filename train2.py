@@ -588,6 +588,7 @@ def main():
             if args.mix_pre:
                 with torch.cuda.amp.autocast():
                     with torch.no_grad():
+                        print(x.shape)
                         x = pre_model(x)
                     output = model(x)
                     train_loss = criterion(output, targetx)
