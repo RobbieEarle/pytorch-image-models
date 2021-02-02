@@ -21,7 +21,6 @@ import os
 import logging
 from collections import OrderedDict
 from contextlib import suppress
-from datetime import datetime
 import csv
 import os
 from shutil import copyfile
@@ -44,6 +43,7 @@ import util
 from torch.optim.lr_scheduler import OneCycleLR
 import math
 import torch.nn.functional as F
+import datetime
 
 try:
     from apex import amp
