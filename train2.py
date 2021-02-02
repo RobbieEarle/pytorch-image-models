@@ -641,7 +641,7 @@ def main():
             for batch_idx, (y, targety) in enumerate(loader_eval):
                 y, targety = y.to(device), targety.to(device)
                 with torch.no_grad():
-                    x = pre_model(x)
+                    y = pre_model(y)
                 output = model(y)
                 val_loss = criterion(output, targety)
                 total_val_loss += val_loss
