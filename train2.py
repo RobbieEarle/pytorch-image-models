@@ -308,6 +308,13 @@ def _parse_args():
 def main():
     setup_default_logging()
     args, args_text = _parse_args()
+
+    args.prefetcher = not args.no_prefetcher
+    args.distributed = False
+    args.device = 'cuda:0'
+    args.world_size = 1
+    args.rank = 0  # global rank
+
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
