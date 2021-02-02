@@ -550,8 +550,6 @@ def main():
                                          checkpoint['p'], checkpoint['k'], checkpoint['g'],
                                          checkpoint['perm_method']))
 
-    best_val_acc = 0
-
     args.mix_pre_apex = False
     if args.control_amp == 'apex':
         args.mix_pre_apex = True
