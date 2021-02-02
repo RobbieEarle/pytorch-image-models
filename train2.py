@@ -553,6 +553,7 @@ def main():
 
     best_val_acc = 0
 
+    args.mix_pre_apex = False
     if args.control_amp == 'apex':
         args.mix_pre_apex = True
         model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
@@ -574,6 +575,7 @@ def main():
 
         util.seed_all((args.seed * args.epochs) + epoch)
         start_time = time.time()
+        args.mix_pre = False
         if args.control_amp == 'native':
             args.mix_pre = True
             scaler = torch.cuda.amp.GradScaler()
