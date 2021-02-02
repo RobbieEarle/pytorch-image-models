@@ -521,7 +521,7 @@ def main():
         'epoch_val_loss', 'epoch_val_acc', 'hp_idx', 'curr_lr', 'found_lr', 'epochs'
     ]
     filename = 'out_{}_{}_{}_{}'.format(datetime.date.today(), args.actfun, args.data, args.seed)
-    outfile_path = os.path.join(args.save_path, filename) + '.csv'
+    outfile_path = os.path.join(args.output, filename) + '.csv'
     checkpoint_path = os.path.join(args.check_path, filename) + '.pth'
     if not os.path.exists(outfile_path):
         with open(outfile_path, mode='w') as out_file:
