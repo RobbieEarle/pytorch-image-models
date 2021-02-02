@@ -518,7 +518,7 @@ def main():
         'dataset', 'seed', 'epoch', 'time', 'actfun', 'model', 'batch_size', 'alpha_primes', 'alphas',
         'num_params', 'var_nparams', 'var_nsamples', 'k', 'p', 'g', 'perm_method', 'gen_gap',
         'epoch_train_loss', 'epoch_train_acc', 'epoch_aug_train_loss', 'epoch_aug_train_acc',
-        'epoch_val_loss', 'epoch_val_acc', 'hp_idx', 'curr_lr', 'found_lr', 'epochs'
+        'epoch_val_loss', 'epoch_val_acc', 'curr_lr', 'found_lr', 'epochs'
     ]
     filename = 'out_{}_{}_{}_{}'.format(datetime.date.today(), args.actfun, args.data, args.seed)
     outfile_path = os.path.join(args.output, filename) + '.csv'
@@ -638,6 +638,8 @@ def main():
             total_val_loss, n, num_correct, num_total = 0, 0, 0, 0
             for batch_idx, (y, targety) in enumerate(loader_eval):
                 y, targety = y.to(device), targety.to(device)
+                with torch.no_grad():
+                    x = pre_model(x)
                 output = model(y)
                 val_loss = criterion(output, targety)
                 total_val_loss += val_loss
@@ -665,6 +667,8 @@ def main():
                 total_train_loss, n, num_correct, num_total = 0, 0, 0, 0
                 for batch_idx, (x, targetx) in enumerate(loader_train):
                     x, targetx = x.to(device), targetx.to(device)
+                    with torch.no_grad():
+                        x = pre_model(x)
                     output = model(x)
                     train_loss = criterion(output, targetx)
                     total_train_loss += train_loss
@@ -678,6 +682,8 @@ def main():
                 total_train_loss, n, num_correct, num_total = 0, 0, 0, 0
                 for batch_idx, (x, targetx) in enumerate(loader_eval):
                     x, targetx = x.to(device), targetx.to(device)
+                    with torch.no_grad():
+                        x = pre_model(x)
                     output = model(x)
                     train_loss = criterion(output, targetx)
                     total_train_loss += train_loss
@@ -714,7 +720,6 @@ def main():
                              'epoch_aug_train_acc': float(epoch_aug_train_acc),
                              'epoch_val_loss': float(epoch_val_loss),
                              'epoch_val_acc': float(epoch_val_acc),
-                             'hp_idx': hp_idx,
                              'curr_lr': lr_curr,
                              'found_lr': args.lr,
                              'epochs': args.epochs
