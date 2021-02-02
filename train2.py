@@ -599,6 +599,7 @@ def main():
                 scaler.update()
             elif args.mix_pre_apex:
                 with torch.no_grad():
+                    print(x.shape)
                     x = pre_model(x)
                 output = model(x)
                 train_loss = criterion(output, targetx)
@@ -609,6 +610,7 @@ def main():
                 optimizer.step()
             else:
                 with torch.no_grad():
+                    print(x.shape)
                     x = pre_model(x)
                 output = model(x)
                 train_loss = criterion(output, targetx)
