@@ -8,17 +8,18 @@
 #SBATCH --mem=128G                           # memory per node
 #SBATCH --time=500:00:00                     # max walltime, hh:mm:ss
 #SBATCH --array=42%1                    # array value
-#SBATCH --output=logs_new/test_tl/%a-%N-%j    # %N for node name, %j for jobID
-#SBATCH --job-name=test_tl
+#SBATCH --output=logs_new/tl_mlp_caltech101/%a-%N-%j    # %N for node name, %j for jobID
+#SBATCH --job-name=tl_mlp_caltech101
 
 source ~/.bashrc
 source activate ~/venvs/efficientnet_train
 
 ACTFUN="$1"
 LR="$2"
+B="$3"
 SEED="$SLURM_ARRAY_TASK_ID"
 
-SAVE_PATH=~/pytorch-image-models/outputs/test_tl
+SAVE_PATH=~/pytorch-image-models/outputs/tl_mlp_caltech101
 CHECK_PATH="/checkpoint/$USER/${SLURM_JOB_ID}"
 IMGNET_PATH=/scratch/ssd001/datasets/imagenet/
 
@@ -46,5 +47,5 @@ echo "SEED=$SEED"
 #~/utilities/log_gpu_cpu_stats 2000 0.5 -n -1 "${SAVE_PATH}/${SLURM_ARRAY_TASK_ID}_${SLURM_NODEID}_${SLURM_ARRAY_JOB_ID}_compute_usage.log"&
 #export LOGGER_PID="$!"
 
-python train2.py --data caltech101 --model efficientnet_b0 -b 20 --actfun $ACTFUN --output $SAVE_PATH --check-path $CHECK_PATH --seed $SEED --epochs 450 --weight-init orthogonal --lr $LR --num-classes 101
+python train2.py --data caltech101 --model efficientnet_b0 -b $B --actfun $ACTFUN --output $SAVE_PATH --check-path $CHECK_PATH --seed $SEED --epochs 200 --weight-init orthogonal --lr $LR --num-classes 101
 #kill $LOGGER_PID
